@@ -8,7 +8,6 @@ Listens for incoming requests and deletes docker images if merge request is merg
 
 ```
 cp env.example .env
-docker network create registry-migrate
 docker-compose up -d
 ```
 
