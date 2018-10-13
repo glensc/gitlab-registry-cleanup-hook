@@ -15,10 +15,10 @@ COPY --from=git /app/delete_docker_registry_image.py .
 COPY Pipfile* ./
 RUN pipenv install --system --deploy
 
-# Copy rest of the app
-COPY gitlab-registry-cleanup-hook.py .
-
 EXPOSE 8000
 STOPSIGNAL SIGKILL
 
 CMD ["/app/gitlab-registry-cleanup-hook.py"]
+
+# Copy rest of the app
+COPY gitlab-registry-cleanup-hook.py .

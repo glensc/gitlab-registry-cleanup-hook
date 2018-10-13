@@ -30,23 +30,25 @@ token = env.get('HOOK_TOKEN')
 
 @route('/', method='POST')
 def validate():
-    if request.get_header('X-GITLAB-EVENT') == "Merge Request Hook" and request.get_header('X-GITLAB-TOKEN') == token:
-      logger.info("Valid request, processing")
-      cleanup()
-
-def cleanup():
-    data = request.json
-    state = data['object_attributes']['state']
-    if state != 'merged':
+    if request.get_header('X-GITLAB-TOKEN') != token:
         return
 
+    if not request.get_header('X-GITLAB-EVENT') in ["Merge Request Hook", "System Hook"]:
+        return
+
+    data = request.json
+    if data['event_type'] != 'merge_request' or data['object_attributes']['state'] != 'merged':
+        return
+
+    logger.info("Valid request, processing")
+    cleanup(data)
+
+def cleanup(data):
     logger.info("Merge detected")
     branch = data['object_attributes']['source_branch']
-    path_with_namespace = data['object_attributes']['source']['path_with_namespace'].split("/")
-    project_namespace =  path_with_namespace[0]
-    project_name = path_with_namespace[1]
+    project_path = data['object_attributes']['source']['path_with_namespace']
     registry_data_dir = "/var/opt/gitlab/gitlab-rails/shared/registry/docker/registry/v2"
-    image = "%s/%s" % ( project_namespace, project_name )
+    image = "%s/branches" % project_path
     tag = branch
     dry_run = False
     untagged = False
