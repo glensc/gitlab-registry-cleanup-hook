@@ -54,9 +54,8 @@ def cleanup(data):
     untagged = False
     prune = True
 
-    logger.info("Trying to delete %s:%s" %( image, branch ))
-
     try:
+        logger.info("Trying to delete %s:%s" %( image, branch ))
         cleaner = delete_docker_registry_image.RegistryCleaner(registry_data_dir, dry_run)
         if untagged:
             cleaner.delete_untagged(image)
@@ -68,6 +67,7 @@ def cleanup(data):
 
         if prune:
             cleaner.prune()
+        logger.info("Deleted %s:%s" %( image, branch ))
     except delete_docker_registry_image.RegistryCleanerError as error:
         logger.fatal(error)
 
