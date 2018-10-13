@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+  app:
+    build: .
+    ports:
+      - 8000:8000
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "10"
+
+networks:
+  default:
+    external:
+      name: registry-migrate
+
+# vim:ts=2:sw=2:et
