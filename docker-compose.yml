@@ -3,6 +3,8 @@ version: '2'
 services:
   app:
     build: .
+    volumes:
+      - $REGISTRY_BUCKET_PATH/docker/registry:/var/opt/gitlab/gitlab-rails/shared/registry/docker/registry:ro
     env_file:
       - .env
     ports:
