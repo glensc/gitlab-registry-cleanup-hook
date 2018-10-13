@@ -19,5 +19,6 @@ RUN pipenv install --system --deploy
 COPY gitlab-registry-cleanup-hook.py .
 
 EXPOSE 8000
+STOPSIGNAL SIGKILL
 
 CMD ["/app/gitlab-registry-cleanup-hook.py"]
