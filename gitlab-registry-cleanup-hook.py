@@ -17,6 +17,7 @@
 # you should also run registry garbage collection, either afterwards (might break your productive env) or at night (cronjob, better)
 # gitlab-ctl registry-garbage-collect
 
+from os import environ as env
 from bottle import request, route, run
 import delete_docker_registry_image
 import logging
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 # basic security, add this token to the project's webhook
 # get one:
 # < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c"${1:-32}";echo;
-token = "my-super-secret-token"
+token = env.get('HOOK_TOKEN')
 
 @route('/', method='POST')
 def validate():
