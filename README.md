@@ -1,6 +1,4 @@
-# gitlab-registry-cleanup-hook
-
-Gitlab Registry Cleanup Hook
+# Gitlab Registry Cleanup Hook
 
 Listens for incoming requests and deletes docker images if merge request is merged.
 
