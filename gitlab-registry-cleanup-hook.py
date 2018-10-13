@@ -40,11 +40,10 @@ def validate():
     if data['event_type'] != 'merge_request' or data['object_attributes']['state'] != 'merged':
         return
 
-    logger.info("Valid request, processing")
+    logger.info("Merge detected, processing")
     cleanup(data)
 
 def cleanup(data):
-    logger.info("Merge detected")
     branch = data['object_attributes']['source_branch']
     project_path = data['object_attributes']['source']['path_with_namespace']
     registry_data_dir = "/var/opt/gitlab/gitlab-rails/shared/registry/docker/registry/v2"
