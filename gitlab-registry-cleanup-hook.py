@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/local/bin/python3 -u
 
 #
 # Disclaimer: Dirty workaround, i'm not responsible for anything, although it works for us
