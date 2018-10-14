@@ -37,6 +37,8 @@ def validate():
         return
 
     data = request.json
+    if not 'event_type' in data:
+        return
     if data['event_type'] != 'merge_request' or data['object_attributes']['state'] != 'merged':
         return
 
