@@ -1,32 +1,23 @@
 #!/usr/local/bin/python3 -u
 
+#  Listens for incoming requests and deletes docker images if merge request is merged.
 #
-# Disclaimer: Dirty workaround, i'm not responsible for anything, although it works for us
-#
-# simple webhook script for https://gitlab.com/gitlab-org/gitlab-ce/issues/21608#note_22185264
-# uses https://github.com/burnettk/delete-docker-registry-image
-#
-# listens on POST requests containing JSON data from Gitlab webhook (on merge)
-# it uses bottlepy, so setup like:
-#   pip install bottle
-# you can run it like
-#   nohup /opt/registry-cleanup/python/registry-cleaner.py >> /var/log/registry-cleanup.log 2>&1 &
-# also you need to put delete-docker-registry-image into the same directory:
-#   curl -O https://raw.githubusercontent.com/burnettk/delete-docker-registry-image/master/delete_docker_registry_image.py
-#
-# you should also run registry garbage collection, either afterwards (might break your productive env) or at night (cronjob, better)
-# gitlab-ctl registry-garbage-collect
+# You should also run registry garbage collection,
+# either afterwards (might break your productive env) or at night (cronjob, better)
+# $ gitlab-ctl registry-garbage-collect
 
 from os import environ as env
 from bottle import request, route, run
 import delete_docker_registry_image
 import logging
+
 logger = logging.getLogger(__name__)
 
 # basic security, add this token to the project's webhook
 # get one:
 # < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c"${1:-32}";echo;
 token = env.get('HOOK_TOKEN')
+
 
 @route('/', method='POST')
 def validate():
@@ -37,13 +28,14 @@ def validate():
         return
 
     data = request.json
-    if not 'event_type' in data:
+    if 'event_type' not in data:
         return
     if data['event_type'] != 'merge_request' or data['object_attributes']['state'] != 'merged':
         return
 
     logger.info("Merge detected, processing")
     cleanup(data)
+
 
 def cleanup(data):
     branch = data['object_attributes']['source_branch']
@@ -56,7 +48,7 @@ def cleanup(data):
     prune = True
 
     try:
-        logger.info("Trying to delete %s:%s" %( image, branch ))
+        logger.info("Trying to delete %s:%s" % (image, branch))
         cleaner = delete_docker_registry_image.RegistryCleaner(registry_data_dir, dry_run)
         if untagged:
             cleaner.delete_untagged(image)
@@ -68,9 +60,10 @@ def cleanup(data):
 
         if prune:
             cleaner.prune()
-        logger.info("Deleted %s:%s" %( image, branch ))
+        logger.info("Deleted %s:%s" % (image, branch))
     except delete_docker_registry_image.RegistryCleanerError as error:
         logger.fatal(error)
+
 
 def main():
     handler = logging.StreamHandler()
@@ -78,6 +71,7 @@ def main():
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
     run(host='0.0.0.0', port=8000)
+
 
 if __name__ == "__main__":
     main()
