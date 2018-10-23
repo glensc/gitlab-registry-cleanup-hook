@@ -10,7 +10,7 @@ docker-compose up -d
 ```
 
 Create system hook from `/admin/hooks`
-- URL: http://this-service:8000/
+- URL: `http://this-service:8000/`
 - Secret Token: same as `$HOOK_TOKEN` from the `.env`
 - Trigger: Merge request events
 
