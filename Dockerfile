@@ -1,4 +1,4 @@
-FROM python:3-alpine AS base
+FROM python:3.7-alpine AS base
 
 FROM base AS git
 RUN apk add --no-cache git
