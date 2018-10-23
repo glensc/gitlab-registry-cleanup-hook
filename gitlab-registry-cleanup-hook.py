@@ -42,24 +42,12 @@ def cleanup(data):
     project_path = data['object_attributes']['source']['path_with_namespace']
     registry_data_dir = "/var/opt/gitlab/gitlab-rails/shared/registry/docker/registry/v2"
     image = "%s/branches" % project_path
-    tag = branch
-    dry_run = False
-    untagged = False
-    prune = True
 
     try:
         logger.info("Trying to delete %s:%s" % (image, branch))
-        cleaner = delete_docker_registry_image.RegistryCleaner(registry_data_dir, dry_run)
-        if untagged:
-            cleaner.delete_untagged(image)
-        else:
-            if tag:
-                cleaner.delete_repository_tag(image, tag)
-            else:
-                cleaner.delete_entire_repository(image)
-
-        if prune:
-            cleaner.prune()
+        cleaner = delete_docker_registry_image.RegistryCleaner(registry_data_dir)
+        cleaner.delete_repository_tag(image, branch)
+        cleaner.prune()
         logger.info("Deleted %s:%s" % (image, branch))
     except delete_docker_registry_image.RegistryCleanerError as error:
         logger.fatal(error)
