@@ -2,3 +2,4 @@
 /.env
 /.idea/
 /docker-compose.override.yml
+/gricleaner.py

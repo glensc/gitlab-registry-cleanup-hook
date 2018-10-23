@@ -8,7 +8,8 @@
 
 from os import environ as env
 from bottle import request, route, run
-import delete_docker_registry_image
+import requests
+from gricleaner import GitlabRegistryClient
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,22 @@ logger = logging.getLogger(__name__)
 # get one:
 # < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c"${1:-32}";echo;
 token = env.get('HOOK_TOKEN')
+
+
+def createClient():
+    authentication = (
+        env.get('GITLAB_USER'),
+        env.get('GITLAB_PASSWORD')
+    )
+    jwt_url = env.get('GITLAB_JWT_URL')
+    registry_url = env.get('GITLAB_REGISTRY')
+    registry_url = 'https://' + registry_url if not registry_url.startswith('http') else registry_url
+
+    return GitlabRegistryClient(
+        auth=authentication,
+        jwt=jwt_url,
+        registry=registry_url
+    )
 
 
 @route('/', method='POST')
@@ -40,26 +57,22 @@ def validate():
 def cleanup(data):
     branch = data['object_attributes']['source_branch']
     project_path = data['object_attributes']['source']['path_with_namespace']
-    registry_data_dir = "/var/opt/gitlab/gitlab-rails/shared/registry/docker/registry/v2"
+
     image = "%s/branches" % project_path
+    tag = branch
 
     try:
-        logger.info("Trying to delete %s:%s" % (image, branch))
-        cleaner = delete_docker_registry_image.RegistryCleaner(registry_data_dir)
-        cleaner.delete_repository_tag(image, branch)
-        cleaner.prune()
-        logger.info("Deleted %s:%s" % (image, branch))
-    except delete_docker_registry_image.RegistryCleanerError as error:
+        logger.info("Trying to delete %s:%s" % (image, tag))
+        client.delete_image(image, tag)
+        logger.info("Deleted %s:%s" % (image, tag))
+    except requests.exceptions.HTTPError as error:
         logger.fatal(error)
 
 
-def main():
+if __name__ == "__main__":
+    client = createClient()
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(u'%(levelname)-8s [%(asctime)s]  %(message)s'))
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
     run(host='0.0.0.0', port=8000)
-
-
-if __name__ == "__main__":
-    main()
