@@ -2,7 +2,7 @@ version: '2'
 
 services:
   app:
-    build: .
+    image: glen/gitlab-registry-cleanup-hook:latest
     volumes:
       - $REGISTRY_BUCKET_PATH/docker/registry:/var/opt/gitlab/gitlab-rails/shared/registry/docker/registry:rw
     env_file:
