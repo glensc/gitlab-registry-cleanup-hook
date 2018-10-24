@@ -7,10 +7,11 @@
 # $ gitlab-ctl registry-garbage-collect
 
 from os import environ as env
-from bottle import request, route, run
+from bottle import request, route, run, error, HTTPResponse
 import requests
 from gricleaner import GitlabRegistryClient
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,14 @@ logger = logging.getLogger(__name__)
 # get one:
 # < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c"${1:-32}";echo;
 token = env.get('HOOK_TOKEN')
+
+NoContentResponse = HTTPResponse(status=204)
+
+class JsonResponse(HTTPResponse):
+    def __init__(self, body={}, status=None, headers={}, **more_headers):
+        headers['Content-Type'] = 'application/json'
+        payload = json.dumps(body)
+        super(HTTPResponse, self).__init__(payload, status, headers, **more_headers)
 
 
 def createClient():
@@ -46,19 +55,19 @@ def createClient():
 @route('/', method='POST')
 def validate():
     if request.get_header('X-GITLAB-TOKEN') != token:
-        return
+        return NoContentResponse
 
     if not request.get_header('X-GITLAB-EVENT') in ["Merge Request Hook", "System Hook"]:
-        return
+        return NoContentResponse
 
     data = request.json
     if 'event_type' not in data:
-        return
+        return NoContentResponse
     if data['event_type'] != 'merge_request' or data['object_attributes']['state'] != 'merged':
-        return
+        return NoContentResponse
 
     logger.info("Merge detected, processing")
-    cleanup(data)
+    return cleanup(data)
 
 
 def cleanup(data):
@@ -73,15 +82,19 @@ def cleanup(data):
         digest = client.get_digest(image, tag)
         if digest == None:
             logger.info("Image not present")
-        else:
-            result = client.delete_image(image, tag)
-            if result:
-                logger.info("Deleted %s:%s" % (image, tag))
-            else:
-                logger.info("Image not deleted")
+            return JsonResponse({'error': 'Image not found'}, status=404)
+
+        result = client.delete_image(image, tag)
+        if result:
+            logger.info("Deleted %s:%s" % (image, tag))
+            return JsonResponse({'status': 'Image deleted'}, status=200)
+
+        logger.info("Image not deleted")
+        return JsonResponse({'status': 'Image not deleted'}, status=202)
 
     except requests.exceptions.HTTPError as error:
         logger.fatal(error)
+        return JsonResponse({'error': 'Underlying HTTP error. Details not disclosed.'}, status=500)
 
 
 if __name__ == "__main__":
