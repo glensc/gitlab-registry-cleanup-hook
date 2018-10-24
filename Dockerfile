@@ -1,8 +1,11 @@
 FROM python:3.7-alpine AS base
 
 FROM base AS git
+WORKDIR /app
 RUN apk add --no-cache git
+ARG REVISION=a8f2768
 RUN git clone https://github.com/n0madic/gitlab-registry-images-cleaner /app
+RUN git checkout $REVISION
 
 FROM base
 
