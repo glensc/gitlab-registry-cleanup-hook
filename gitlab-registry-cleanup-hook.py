@@ -21,12 +21,17 @@ token = env.get('HOOK_TOKEN')
 
 
 def createClient():
-    authentication = (
-        env.get('GITLAB_USER'),
-        env.get('GITLAB_PASSWORD')
-    )
+    user = env.get('GITLAB_USER'),
+    password = env.get('GITLAB_PASSWORD')
     jwt_url = env.get('GITLAB_JWT_URL')
     registry_url = env.get('GITLAB_REGISTRY')
+    if None in [user, password, jwt_url, registry_url]:
+        raise Exception('Some required env variable missing')
+
+    authentication = (
+        user,
+        password,
+    )
     registry_url = 'https://' + registry_url if not registry_url.startswith('http') else registry_url
 
     return GitlabRegistryClient(
