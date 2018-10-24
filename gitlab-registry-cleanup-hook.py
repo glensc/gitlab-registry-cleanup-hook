@@ -21,7 +21,7 @@ token = env.get('HOOK_TOKEN')
 
 
 def createClient():
-    user = env.get('GITLAB_USER'),
+    user = env.get('GITLAB_USER')
     password = env.get('GITLAB_PASSWORD')
     jwt_url = env.get('GITLAB_JWT_URL')
     registry_url = env.get('GITLAB_REGISTRY')
@@ -33,6 +33,8 @@ def createClient():
         password,
     )
     registry_url = 'https://' + registry_url if not registry_url.startswith('http') else registry_url
+
+    logger.info("Registry: %s, JWT: %s, User: %s" % (registry_url, jwt_url, user))
 
     return GitlabRegistryClient(
         auth=authentication,
@@ -75,9 +77,9 @@ def cleanup(data):
 
 
 if __name__ == "__main__":
-    client = createClient()
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(u'%(levelname)-8s [%(asctime)s]  %(message)s'))
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
+    client = createClient()
     run(host='0.0.0.0', port=8000)
