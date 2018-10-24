@@ -70,8 +70,16 @@ def cleanup(data):
 
     try:
         logger.info("Trying to delete %s:%s" % (image, tag))
-        client.delete_image(image, tag)
-        logger.info("Deleted %s:%s" % (image, tag))
+        digest = client.get_digest(image, tag)
+        if digest == None:
+            logger.info("Image not present")
+        else:
+            result = client.delete_image(image, tag)
+            if result:
+                logger.info("Deleted %s:%s" % (image, tag))
+            else:
+                logger.info("Image not deleted")
+
     except requests.exceptions.HTTPError as error:
         logger.fatal(error)
 
