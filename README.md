@@ -22,6 +22,7 @@ Create system hook from `/admin/hooks`
 
 [@burnettk]: https://github.com/burnettk
 [@morph027]: https://gitlab.com/morph027
+[@n0madic]: https://gitlab.com/n0madic
 [Python Gist]: https://gitlab.com/snippets/1091155/
 [delete_docker_registry_image.py]: https://github.com/burnettk/delete-docker-registry-image
 [gricleaner.py]: https://github.com/n0madic/gitlab-registry-images-cleaner
