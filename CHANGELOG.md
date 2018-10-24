@@ -2,10 +2,11 @@
 
 ## [0.3.0] - 2018-10-25
 
-- use api to delete images, no longer requiring direct docker registry filesystem access [#5]
+- use api to delete images, no longer requiring direct docker registry filesystem access [#1], [#5]
 
 [0.3.0]: https://github.com/glensc/gitlab-registry-cleanup-hook/compare/0.2.1...0.3.0
 [#5]: https://github.com/glensc/gitlab-registry-cleanup-hook/pull/5
+[#1]: https://github.com/glensc/gitlab-registry-cleanup-hook/issues/1
 
 ## [0.2.1] - 2018-10-15
 
