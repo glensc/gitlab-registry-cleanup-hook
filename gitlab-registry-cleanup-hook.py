@@ -17,8 +17,12 @@ logger = logging.getLogger(__name__)
 
 # basic security, add this token to the project's webhook
 # get one:
-# < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c"${1:-32}";echo;
-token = env.get('HOOK_TOKEN')
+# < /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c"${1:-32}";echo;
+token_file = env.get('HOOK_TOKEN_FILE')
+if token_file is not None:
+    token = open(token_file, 'r').read().splitlines()[0]
+else:
+    token = env.get('HOOK_TOKEN')
 
 NoContentResponse = HTTPResponse(status=204)
 
@@ -31,7 +35,11 @@ class JsonResponse(HTTPResponse):
 
 def createClient():
     user = env.get('GITLAB_USER')
-    password = env.get('GITLAB_PASSWORD')
+    password_file = env.get('GITLAB_PASSWORD_FILE')
+    if password_file is not None:
+        password = open(password_file, 'r').read().splitlines()[0]
+    else:
+        password = env.get('GITLAB_PASSWORD')
     jwt_url = env.get('GITLAB_JWT_URL')
     registry_url = env.get('GITLAB_REGISTRY')
     if None in [user, password, jwt_url, registry_url]:
