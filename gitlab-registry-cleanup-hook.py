@@ -6,23 +6,14 @@
 # either afterwards (might break your productive env) or at night (cronjob, better)
 # $ gitlab-ctl registry-garbage-collect
 
-from os import environ as env
-from bottle import request, route, run, error, HTTPResponse
+from os import environ
+from bottle import request, route, run, HTTPResponse
 import requests
 from gricleaner import GitlabRegistryClient
 import logging
 import json
+import gitlab
 
-logger = logging.getLogger(__name__)
-
-# basic security, add this token to the project's webhook
-token_file = env.get('HOOK_TOKEN_FILE')
-if token_file is not None:
-    token = open(token_file, 'r').read().splitlines()[0]
-else:
-    token = env.get('HOOK_TOKEN')
-
-NoContentResponse = HTTPResponse(status=204)
 
 class JsonResponse(HTTPResponse):
     def __init__(self, body={}, status=None, headers={}, **more_headers):
@@ -31,21 +22,53 @@ class JsonResponse(HTTPResponse):
         super(HTTPResponse, self).__init__(payload, status, headers, **more_headers)
 
 
+class Config:
+    def __init__(self):
+        self.env = environ
+
+    def get(self, name, default=None):
+        if name == 'GITLAB_TOKEN':
+            return self.get_secret(name)
+        if name == 'HOOK_TOKEN':
+            return self.get_secret(name)
+
+        return self.env.get(name, default)
+
+    def get_secret(self, name):
+        secret_file = self.env.get('{}_FILE'.format(name))
+        if secret_file is not None:
+            secret = open(secret_file, 'r').read().splitlines()[0]
+        else:
+            secret = self.env.get(name)
+
+        return secret
+
+    def __getattr__(self, item):
+        return self.get(item)
+
+
+NoContentResponse = HTTPResponse(status=204)
+
+
+def gitlabClient():
+    api_url = config.get('GITLAB_API_URL')
+    gl = gitlab.Gitlab(api_url, private_token=config.get('GITLAB_TOKEN'))
+    logger.info("GitLab API: %s" % (api_url))
+
+    return gl
+
+
 def createClient():
-    user = env.get('GITLAB_USER')
-    password_file = env.get('GITLAB_PASSWORD_FILE')
-    if password_file is not None:
-        password = open(password_file, 'r').read().splitlines()[0]
-    else:
-        password = env.get('GITLAB_PASSWORD')
-    jwt_url = env.get('GITLAB_JWT_URL')
-    registry_url = env.get('GITLAB_REGISTRY')
-    if None in [user, password, jwt_url, registry_url]:
+    user = config.get('GITLAB_USER')
+    token = config.get('GITLAB_TOKEN')
+    jwt_url = config.get('GITLAB_JWT_URL')
+    registry_url = config.get('GITLAB_REGISTRY')
+    if None in [user, token, jwt_url, registry_url]:
         raise Exception('Some required env variable missing')
 
     authentication = (
         user,
-        password,
+        token,
     )
     registry_url = 'https://' + registry_url if not registry_url.startswith('http') else registry_url
 
@@ -60,7 +83,7 @@ def createClient():
 
 @route('/', method='POST')
 def validate():
-    if request.get_header('X-GITLAB-TOKEN') != token:
+    if request.get_header('X-GITLAB-TOKEN') != hook_token:
         return NoContentResponse
 
     if not request.get_header('X-GITLAB-EVENT') in ["Merge Request Hook", "System Hook"]:
@@ -73,6 +96,13 @@ def validate():
         return NoContentResponse
 
     logger.info("Merge detected, processing")
+    project_id = data['project']['id']
+    project = gl.projects.get(project_id)
+
+    if not project.attributes['container_registry_enabled']:
+        logger.info("Registry not enabled; skip")
+        return NoContentResponse
+
     return cleanup(data)
 
 
@@ -104,9 +134,14 @@ def cleanup(data):
 
 
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter(u'%(levelname)-8s [%(asctime)s]  %(message)s'))
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
+
+    config = Config()
+    hook_token = config.get('HOOK_TOKEN')
     client = createClient()
+    gl = gitlabClient()
     run(host='0.0.0.0', port=8000)
