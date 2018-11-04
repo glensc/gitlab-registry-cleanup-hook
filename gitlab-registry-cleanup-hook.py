@@ -27,7 +27,7 @@ class Config:
         self.env = environ
 
     def get(self, name, default=None):
-        if name == 'GITLAB_PASSWORD':
+        if name == 'GITLAB_TOKEN':
             return self.get_secret(name)
         if name == 'HOOK_TOKEN':
             return self.get_secret(name)
@@ -52,7 +52,7 @@ NoContentResponse = HTTPResponse(status=204)
 
 def gitlabClient():
     api_url = config.get('GITLAB_API_URL')
-    gl = gitlab.Gitlab(api_url, private_token=config.get('GITLAB_PASSWORD'))
+    gl = gitlab.Gitlab(api_url, private_token=config.get('GITLAB_TOKEN'))
     logger.info("GitLab API: %s" % (api_url))
 
     return gl
@@ -60,7 +60,7 @@ def gitlabClient():
 
 def createClient():
     user = config.get('GITLAB_USER')
-    token = config.get('GITLAB_PASSWORD')
+    token = config.get('GITLAB_TOKEN')
     jwt_url = config.get('GITLAB_JWT_URL')
     registry_url = config.get('GITLAB_REGISTRY')
     if None in [user, token, jwt_url, registry_url]:
