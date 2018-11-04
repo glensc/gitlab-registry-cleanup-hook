@@ -96,6 +96,13 @@ def validate():
         return NoContentResponse
 
     logger.info("Merge detected, processing")
+    project_id = data['project']['id']
+    project = gl.projects.get(project_id)
+
+    if not project.attributes['container_registry_enabled']:
+        logger.info("Registry not enabled; skip")
+        return NoContentResponse
+
     return cleanup(data)
 
 
@@ -136,4 +143,5 @@ if __name__ == "__main__":
     config = Config()
     hook_token = config.get('HOOK_TOKEN')
     client = createClient()
+    gl = gitlabClient()
     run(host='0.0.0.0', port=8000)
