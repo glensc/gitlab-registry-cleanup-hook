@@ -16,8 +16,6 @@ import json
 logger = logging.getLogger(__name__)
 
 # basic security, add this token to the project's webhook
-# get one:
-# < /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c"${1:-32}";echo;
 token_file = env.get('HOOK_TOKEN_FILE')
 if token_file is not None:
     token = open(token_file, 'r').read().splitlines()[0]
