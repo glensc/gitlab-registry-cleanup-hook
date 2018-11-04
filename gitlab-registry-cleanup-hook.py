@@ -12,6 +12,7 @@ import requests
 from gricleaner import GitlabRegistryClient
 import logging
 import json
+import gitlab
 
 
 class JsonResponse(HTTPResponse):
@@ -47,6 +48,14 @@ class Config:
 
 
 NoContentResponse = HTTPResponse(status=204)
+
+
+def gitlabClient():
+    api_url = config.get('GITLAB_API_URL')
+    gl = gitlab.Gitlab(api_url, private_token=config.get('GITLAB_PASSWORD'))
+    logger.info("GitLab API: %s" % (api_url))
+
+    return gl
 
 
 def createClient():
