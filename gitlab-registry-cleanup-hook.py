@@ -133,15 +133,15 @@ def delete_image(image, tag):
     digest = client.get_digest(image, tag)
     if digest == None:
         logger.info("Image not present")
-        return {'message' : 'Image not found', 'image': image, 'tag': tag, 'code': 404}
+        return {'message': 'Image not found', 'image': image, 'tag': tag, 'code': 404}
 
     result = client.delete_image(image, tag)
     if result:
         logger.info("Deleted %s:%s" % (image, tag))
-        return {'message' : 'Image deleted', 'image': image, 'tag': tag, 'code': 200}
+        return {'message': 'Image deleted', 'image': image, 'tag': tag, 'code': 200}
 
     logger.info("Image not deleted")
-    return {'message' : 'Image not deleted', 'image': image, 'tag': tag, 'code': 202}
+    return {'message': 'Image not deleted', 'image': image, 'tag': tag, 'code': 202}
 
 
 def cleanup(project, data):
@@ -154,7 +154,7 @@ def cleanup(project, data):
                 status = message['code']
         except requests.exceptions.HTTPError as error:
             logger.fatal(error)
-            message = {'message' : 'Underlying HTTP error. Details not disclosed.', 'image': image, 'tag': tag, 'code': 500}
+            message = {'message': 'Underlying HTTP error. Details not disclosed.', 'image': image, 'tag': tag, 'code': 500}
             status = 500
 
         messages.append(message)
