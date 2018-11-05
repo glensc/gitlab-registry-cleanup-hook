@@ -103,7 +103,7 @@ def validate():
         logger.info("Registry not enabled; skip")
         return NoContentResponse
 
-    return cleanup(data)
+    return cleanup(project, data)
 
 
 def get_image_delete_list(project, data):
@@ -127,6 +127,7 @@ def get_image_delete_list(project, data):
         image, tag = (template % attributes).split(':')
         yield image, tag
 
+
 def delete_image(image, tag):
     logger.info("Trying to delete %s:%s" % (image, tag))
     digest = client.get_digest(image, tag)
@@ -142,10 +143,8 @@ def delete_image(image, tag):
     logger.info("Image not deleted")
     return {'message' : 'Image not deleted', 'image': image, 'tag': tag, 'code': 202}
 
-def cleanup(data):
-    project_id = data['project']['id']
-    project = gl.projects.get(project_id)
 
+def cleanup(project, data):
     messages = []
     status = 200
     for image, tag in get_image_delete_list(project, data):
@@ -161,6 +160,7 @@ def cleanup(data):
         messages.append(message)
 
     return JsonResponse(messages, status=status)
+
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
