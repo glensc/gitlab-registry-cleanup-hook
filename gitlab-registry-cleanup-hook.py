@@ -110,9 +110,8 @@ def get_image_delete_list(project, data):
     image_template = config.get('IMAGE_NAME_TEMPLATE', '%(project_path)s/branches:%(branch)s')
     project_attribute = config.get('IMAGE_NAME_PROJECT_ATTRIBUTE')
     if project_attribute:
-        # https://python-gitlab.readthedocs.io/en/stable/gl_objects/projects.html#project-custom-attributes
         try:
-            # https://python-gitlab.readthedocs.io/en/stable/api/gitlab.v4.html#gitlab.v4.objects.ProjectCustomAttribute
+            # https://python-gitlab.readthedocs.io/en/stable/gl_objects/projects.html#project-custom-attributes
             attribute = project.customattributes.get(project_attribute)
             # https://python-gitlab.readthedocs.io/en/stable/api/gitlab.v4.html#gitlab.v4.objects.ProjectCustomAttribute
             image_template = attribute.value
