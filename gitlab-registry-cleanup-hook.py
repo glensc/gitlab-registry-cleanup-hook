@@ -112,9 +112,10 @@ def get_image_delete_list(project, data):
     if project_attribute:
         # https://python-gitlab.readthedocs.io/en/stable/gl_objects/projects.html#project-custom-attributes
         try:
-            attribute_value = project.customattributes.get(project_attribute)
-            if attribute_value != None:
-                image_template = attribute_value
+            # https://python-gitlab.readthedocs.io/en/stable/api/gitlab.v4.html#gitlab.v4.objects.ProjectCustomAttribute
+            attribute = project.customattributes.get(project_attribute)
+            # https://python-gitlab.readthedocs.io/en/stable/api/gitlab.v4.html#gitlab.v4.objects.ProjectCustomAttribute
+            image_template = attribute.value
         except gitlab.exceptions.GitlabGetError:
             pass
 
@@ -124,8 +125,8 @@ def get_image_delete_list(project, data):
     }
 
     for template in image_template.split(','):
-        image = template % attributes
-        yield image
+        image, tag = (template % attributes).split(':')
+        yield image, tag
 
 
 def cleanup(data):
