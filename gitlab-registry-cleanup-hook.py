@@ -106,31 +106,49 @@ def validate():
     return cleanup(data)
 
 
+def get_image_delete_list(project, data):
+    image_template = config.get('IMAGE_NAME_TEMPLATE', '%(project_path)s/branches:%(branch)s')
+    project_attribute = config.get('IMAGE_NAME_PROJECT_ATTRIBUTE')
+
+    # https://python-gitlab.readthedocs.io/en/stable/gl_objects/projects.html#project-custom-attributes
+    attribute_value = project.customattributes.get(project_attribute)
+
+    if attribute_value != None:
+        image_template = attribute_value
+
+    attributes = {
+        'branch': data['object_attributes']['source_branch'],
+        'project_path': data['object_attributes']['source']['path_with_namespace'],
+    }
+
+    for template in image_template.split(','):
+        image = template % attributes
+        yield image
+
+
 def cleanup(data):
-    branch = data['object_attributes']['source_branch']
-    project_path = data['object_attributes']['source']['path_with_namespace']
+    project_id = data['project']['id']
+    project = gl.projects.get(project_id)
 
-    image = "%s/branches" % project_path
-    tag = branch
+    for image, tag in get_image_delete_list(project, data):
+        try:
+            logger.info("Trying to delete %s:%s" % (image, tag))
+            digest = client.get_digest(image, tag)
+            if digest == None:
+                logger.info("Image not present")
+                return JsonResponse({'error': 'Image not found'}, status=404)
 
-    try:
-        logger.info("Trying to delete %s:%s" % (image, tag))
-        digest = client.get_digest(image, tag)
-        if digest == None:
-            logger.info("Image not present")
-            return JsonResponse({'error': 'Image not found'}, status=404)
+            result = client.delete_image(image, tag)
+            if result:
+                logger.info("Deleted %s:%s" % (image, tag))
+                return JsonResponse({'status': 'Image deleted'}, status=200)
 
-        result = client.delete_image(image, tag)
-        if result:
-            logger.info("Deleted %s:%s" % (image, tag))
-            return JsonResponse({'status': 'Image deleted'}, status=200)
+            logger.info("Image not deleted")
+            return JsonResponse({'status': 'Image not deleted'}, status=202)
 
-        logger.info("Image not deleted")
-        return JsonResponse({'status': 'Image not deleted'}, status=202)
-
-    except requests.exceptions.HTTPError as error:
-        logger.fatal(error)
-        return JsonResponse({'error': 'Underlying HTTP error. Details not disclosed.'}, status=500)
+        except requests.exceptions.HTTPError as error:
+            logger.fatal(error)
+            return JsonResponse({'error': 'Underlying HTTP error. Details not disclosed.'}, status=500)
 
 
 if __name__ == "__main__":
