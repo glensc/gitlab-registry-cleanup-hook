@@ -127,31 +127,40 @@ def get_image_delete_list(project, data):
         image, tag = (template % attributes).split(':')
         yield image, tag
 
+def delete_image(image, tag):
+    logger.info("Trying to delete %s:%s" % (image, tag))
+    digest = client.get_digest(image, tag)
+    if digest == None:
+        logger.info("Image not present")
+        return {'message' : 'Image not found', 'image': image, 'tag': tag, 'code': 404}
+
+    result = client.delete_image(image, tag)
+    if result:
+        logger.info("Deleted %s:%s" % (image, tag))
+        return {'message' : 'Image deleted', 'image': image, 'tag': tag, 'code': 200}
+
+    logger.info("Image not deleted")
+    return {'message' : 'Image not deleted', 'image': image, 'tag': tag, 'code': 202}
 
 def cleanup(data):
     project_id = data['project']['id']
     project = gl.projects.get(project_id)
 
+    messages = []
+    status = 200
     for image, tag in get_image_delete_list(project, data):
         try:
-            logger.info("Trying to delete %s:%s" % (image, tag))
-            digest = client.get_digest(image, tag)
-            if digest == None:
-                logger.info("Image not present")
-                return JsonResponse({'error': 'Image not found'}, status=404)
-
-            result = client.delete_image(image, tag)
-            if result:
-                logger.info("Deleted %s:%s" % (image, tag))
-                return JsonResponse({'status': 'Image deleted'}, status=200)
-
-            logger.info("Image not deleted")
-            return JsonResponse({'status': 'Image not deleted'}, status=202)
-
+            message = delete_image(image, tag)
+            if message['code'] != 200:
+                status = message['code']
         except requests.exceptions.HTTPError as error:
             logger.fatal(error)
-            return JsonResponse({'error': 'Underlying HTTP error. Details not disclosed.'}, status=500)
+            message = {'message' : 'Underlying HTTP error. Details not disclosed.', 'image': image, 'tag': tag, 'code': 500}
+            status = 500
 
+        messages.append(message)
+
+    return JsonResponse(messages, status=status)
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
