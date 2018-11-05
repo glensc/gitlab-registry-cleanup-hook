@@ -131,33 +131,37 @@ def get_image_delete_list(project, data):
 def delete_image(image, tag):
     logger.info("Trying to delete %s:%s" % (image, tag))
     digest = client.get_digest(image, tag)
-    if digest == None:
+    if digest is None:
         logger.info("Image not present")
-        return {'message': 'Image not found', 'image': image, 'tag': tag, 'code': 404}
+        return ['Image not found', 404]
 
     result = client.delete_image(image, tag)
     if result:
         logger.info("Deleted %s:%s" % (image, tag))
-        return {'message': 'Image deleted', 'image': image, 'tag': tag, 'code': 200}
+        return ['Image deleted', 200]
 
     logger.info("Image not deleted")
-    return {'message': 'Image not deleted', 'image': image, 'tag': tag, 'code': 202}
+    return ['Image not deleted', 202]
 
 
 def cleanup(project, data):
     messages = []
     status = 200
+
     for image, tag in get_image_delete_list(project, data):
         try:
-            message = delete_image(image, tag)
-            if message['code'] != 200:
-                status = message['code']
+            message, code = delete_image(image, tag)
+            if code != 200:
+                status = code
         except requests.exceptions.HTTPError as error:
             logger.fatal(error)
-            message = {'message': 'Underlying HTTP error. Details not disclosed.', 'image': image, 'tag': tag, 'code': 500}
-            status = 500
+            message = 'Underlying HTTP error. Details not disclosed.'
+            status = code = 500
 
-        messages.append(message)
+        messages.append({
+            'image': image, 'tag': tag,
+            'message': message, 'code': code,
+        })
 
     return JsonResponse(messages, status=status)
 
