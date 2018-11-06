@@ -103,34 +103,67 @@ def validate():
         logger.info("Registry not enabled; skip")
         return NoContentResponse
 
-    return cleanup(data)
+    return cleanup(project, data)
 
 
-def cleanup(data):
-    branch = data['object_attributes']['source_branch']
-    project_path = data['object_attributes']['source']['path_with_namespace']
+def get_image_delete_list(project, data):
+    image_template = config.get('IMAGE_NAME_TEMPLATE', '%(project_path)s/branches:%(branch)s')
+    project_attribute = config.get('IMAGE_NAME_PROJECT_ATTRIBUTE')
+    if project_attribute:
+        try:
+            # https://python-gitlab.readthedocs.io/en/stable/gl_objects/projects.html#project-custom-attributes
+            attribute = project.customattributes.get(project_attribute)
+            # https://python-gitlab.readthedocs.io/en/stable/api/gitlab.v4.html#gitlab.v4.objects.ProjectCustomAttribute
+            image_template = attribute.value
+        except gitlab.exceptions.GitlabGetError:
+            pass
 
-    image = "%s/branches" % project_path
-    tag = branch
+    attributes = {
+        'branch': data['object_attributes']['source_branch'],
+        'project_path': data['object_attributes']['source']['path_with_namespace'],
+    }
 
-    try:
-        logger.info("Trying to delete %s:%s" % (image, tag))
-        digest = client.get_digest(image, tag)
-        if digest == None:
-            logger.info("Image not present")
-            return JsonResponse({'error': 'Image not found'}, status=404)
+    for template in image_template.split(','):
+        image, tag = (template % attributes).split(':')
+        yield image, tag
 
-        result = client.delete_image(image, tag)
-        if result:
-            logger.info("Deleted %s:%s" % (image, tag))
-            return JsonResponse({'status': 'Image deleted'}, status=200)
 
-        logger.info("Image not deleted")
-        return JsonResponse({'status': 'Image not deleted'}, status=202)
+def delete_image(image, tag):
+    logger.info("Trying to delete %s:%s" % (image, tag))
+    digest = client.get_digest(image, tag)
+    if digest is None:
+        logger.info("Image not present")
+        return ['Image not found', 404]
 
-    except requests.exceptions.HTTPError as error:
-        logger.fatal(error)
-        return JsonResponse({'error': 'Underlying HTTP error. Details not disclosed.'}, status=500)
+    result = client.delete_image(image, tag)
+    if result:
+        logger.info("Deleted %s:%s" % (image, tag))
+        return ['Image deleted', 200]
+
+    logger.info("Image not deleted")
+    return ['Image not deleted', 202]
+
+
+def cleanup(project, data):
+    messages = []
+    status = 200
+
+    for image, tag in get_image_delete_list(project, data):
+        try:
+            message, code = delete_image(image, tag)
+            if code != 200:
+                status = code
+        except requests.exceptions.HTTPError as error:
+            logger.fatal(error)
+            message = 'Underlying HTTP error. Details not disclosed.'
+            status = code = 500
+
+        messages.append({
+            'image': image, 'tag': tag,
+            'message': message, 'code': code,
+        })
+
+    return JsonResponse(messages, status=status)
 
 
 if __name__ == "__main__":
