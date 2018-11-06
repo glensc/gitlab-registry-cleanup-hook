@@ -95,7 +95,8 @@ def validate():
     if data['event_type'] != 'merge_request' or data['object_attributes']['state'] != 'merged':
         return NoContentResponse
 
-    logger.info("Merge detected, processing")
+    project_path = data['object_attributes']['source']['path_with_namespace'],
+    logger.info("%s: Merge detected, processing" % project_path)
     project_id = data['project']['id']
     project = gl.projects.get(project_id)
 
@@ -132,7 +133,7 @@ def delete_image(image, tag):
     logger.info("Trying to delete %s:%s" % (image, tag))
     digest = client.get_digest(image, tag)
     if digest is None:
-        logger.info("Image not present")
+        logger.info("Image not present: %s:%s" % (image, tag))
         return ['Image not found', 404]
 
     result = client.delete_image(image, tag)
@@ -140,7 +141,7 @@ def delete_image(image, tag):
         logger.info("Deleted %s:%s" % (image, tag))
         return ['Image deleted', 200]
 
-    logger.info("Image not deleted")
+    logger.info("Image not deleted: %s:%s" % (image, tag))
     return ['Image not deleted', 202]
 
 
