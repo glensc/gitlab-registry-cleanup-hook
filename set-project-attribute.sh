@@ -33,7 +33,7 @@ test -e .env && load_env .env
 project=$(echo "${1:-}" | sed -e 's;/;%2f;g')
 value="${2:-}"
 
-test -n "$project" || die "Usage: $0 project_id/project_path value"
+test -n "$project" || die "Usage: $0 project_id/project_path [value]"
 test -n "$GITLAB_TOKEN" || die "GITLAB_TOKEN missing"
 test -n "$GITLAB_API_URL" || die "GITLAB_API_URL missing"
 test -n "$IMAGE_NAME_PROJECT_ATTRIBUTE" || die "IMAGE_NAME_PROJECT_ATTRIBUTE missing"
