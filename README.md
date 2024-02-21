@@ -2,6 +2,11 @@
 
 Listens for incoming requests and deletes docker images if merge request is merged.
 
+**Archived: This project is no longer maintained**
+
+You can use this project as an alternative:
+- https://github.com/glensc/gitlab-webhook-listener-bot/pull/125
+
 ## Install
 
 ```
